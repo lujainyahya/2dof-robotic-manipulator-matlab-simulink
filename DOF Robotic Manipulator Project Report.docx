@@ -1,0 +1,56 @@
+clc; clear; close all;
+
+%% Robot link lengths
+linkA = 0.20;
+linkB = 0.15;
+
+%% Square trajectory points
+trajX = [0.15 0.25 0.25 0.15 0.15];
+trajY = [0.01 0.01 0.11 0.11 0.01];
+
+%% Figure setup
+figure('Color','w');
+axis equal; grid on; hold on;
+xlim([0 0.4]); ylim([-0.05 0.2]);
+title('Planar 2DOF Robot Following Square Path');
+
+% Desired trajectory (blue instead of red)
+plot(trajX, trajY, 'b--', 'LineWidth', 2);
+
+% Initialize robot drawing
+hRobot = plot([0 0], [0 0], 'Color', [0.6 0 0.8], 'LineWidth', 3);
+hEE = plot(0, 0, 'o', 'MarkerSize', 8, ...
+           'MarkerFaceColor', [1 0.5 0], ...
+           'MarkerEdgeColor', 'k');
+
+%% Animation loop
+for k = 1:length(trajX)
+
+    px = trajX(k);
+    py = trajY(k);
+
+    % Inverse kinematics
+    cosT2 = (px^2 + py^2 - linkA^2 - linkB^2) / (2 * linkA * linkB);
+    cosT2 = min(max(cosT2, -1), 1);   % safety
+    sinT2 = sqrt(1 - cosT2^2);
+
+    theta2 = atan2(sinT2, cosT2);
+    theta1 = atan2(py, px) - atan2(linkB*sin(theta2), ...
+                                   linkA + linkB*cos(theta2));
+
+    % Forward kinematics
+    jointX = linkA * cos(theta1);
+    jointY = linkA * sin(theta1);
+
+    endX = jointX + linkB * cos(theta1 + theta2);
+    endY = jointY + linkB * sin(theta1 + theta2);
+
+    % Update plots
+    set(hRobot, 'XData', [0 jointX endX], ...
+                'YData', [0 jointY endY]);
+
+    set(hEE, 'XData', endX, 'YData', endY);
+
+    drawnow;
+    pause(0.4);
+end
